@@ -8,3 +8,4 @@ apscheduler
 pyktok
 TikTokApi==7.2.1
 playwright==1.40.0
+greenlet==3.1.1
