@@ -422,7 +422,14 @@ async def main():
                 create_sessions_kwargs = {
                     "headless": True,
                     "num_sessions": 1,
-                    "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None
+                    "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
+                    "launch_options": {
+                        "args": [
+                            "--no-sandbox",
+                            "--disable-setuid-sandbox",
+                            "--disable-dev-shm-usage"
+                        ]
+                    }
                 }
             else:
                 # В production всегда используем headless режим, даже при отсутствии сессии
@@ -491,10 +498,17 @@ async def main():
                     launch_args = [arg for arg in launch_args if arg != "--disable-gpu"]
                 
                 create_sessions_kwargs = {
-                    "headless": False,  # Включаем headed режим для диагностики
+                    "headless": True,  # Всегда используем headless режим для Render
                     "timeout": 60000,  # Увеличиваем таймаут до 60 секунд
                     "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
-                    "executable_path": None  # Позволяем использовать стандартный путь к браузеру
+                    "executable_path": None,  # Позволяем использовать стандартный путь к браузеру
+                    "launch_options": {
+                        "args": [
+                            "--no-sandbox",
+                            "--disable-setuid-sandbox",
+                            "--disable-dev-shm-usage"
+                        ]
+                    }
                 }
                 
                 # Добавляем launch_args и context_args в create_sessions_kwargs если они определены
@@ -505,24 +519,7 @@ async def main():
                 #     create_sessions_kwargs["context_args"] = context_args
 
             # 3. Вызов create_sessions с правильными kwargs
-            try:
-                await api.create_sessions(**create_sessions_kwargs)
-            except Exception as e:
-                # Если возникла ошибка запуска браузера, проверим, связано ли это с headed-режимом
-                if "Target page, context or browser has been closed" in str(e) or "XServer" in str(e):
-                    logger.error(f"Ошибка запуска браузера: {e}")
-                    logger.info("Попытка перезапуска в headless-режиме...")
-                    
-                    # Обновляем параметры для принудительного запуска в headless-режиме
-                    create_sessions_kwargs["headless"] = True
-                    
-                    # Повторная попытка создания сессии
-                    await api.create_sessions(**create_sessions_kwargs)
-                    
-                    logger.info("Браузер успешно запущен в headless-режиме")
-                else:
-                    # Если ошибка не связана с headed-режимом, пробрасываем её дальше
-                    raise e
+            await api.create_sessions(**create_sessions_kwargs)
             
             # 4. Загрузка сохраненного состояния в сессию, если оно существует
             if storage_state:
