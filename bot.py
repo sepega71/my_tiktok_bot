@@ -422,8 +422,7 @@ async def main():
                 create_sessions_kwargs = {
                     "headless": True,
                     "num_sessions": 1,
-                    "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
-                    "launch_arguments": launch_args
+                    "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None
                 }
             else:
                 # В production всегда используем headless режим, даже при отсутствии сессии
@@ -466,8 +465,7 @@ async def main():
                     "headless": headless_mode,
                     "timeout": 6000,
                     "num_sessions": 1,
-                    "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
-                    "launch_arguments": launch_args
+                    "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None
                 }
 
             # 3. Вызов create_sessions с правильными kwargs
@@ -481,23 +479,6 @@ async def main():
                     
                     # Обновляем параметры для принудительного запуска в headless-режиме
                     create_sessions_kwargs["headless"] = True
-                    if "launch_arguments" in create_sessions_kwargs:
-                        # Добавляем аргументы, необходимые для работы в headless-режиме
-                        if "--no-sandbox" not in create_sessions_kwargs["launch_arguments"]:
-                            create_sessions_kwargs["launch_arguments"].append("--no-sandbox")
-                        if "--disable-gpu" not in create_sessions_kwargs["launch_arguments"]:
-                            create_sessions_kwargs["launch_arguments"].append("--disable-gpu")
-                    else:
-                        create_sessions_kwargs["launch_arguments"] = [
-                            "--no-sandbox",
-                            "--disable-blink-features=AutomationControlled",
-                            "--disable-dev-shm-usage",
-                            "--disable-gpu",
-                            "--disable-extensions",
-                            "--disable-logging",
-                            "--disable-web-security",
-                            "--disable-features=VizDisplayCompositor"
-                        ]
                     
                     # Повторная попытка создания сессии
                     await api.create_sessions(**create_sessions_kwargs)
