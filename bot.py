@@ -412,12 +412,6 @@ async def main():
                     "num_sessions": 1,
                     "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
                     "timeout": 60000,  # Увеличиваем таймаут до 60 секунд
-                    "playwright_launch_kwargs": {  # Добавляем аргументы для обхода детекции ботов
-                        "args": [
-                            "--no-sandbox",
-                            "--disable-blink-features=AutomationControlled"
-                        ]
-                    }
                 }
             else:
                 # В production всегда используем headless режим, даже при отсутствии сессии
@@ -432,12 +426,6 @@ async def main():
                     "timeout": 60000,  # Увеличиваем таймаут до 60 секунд
                     "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
                     "executable_path": None,  # Позволяем использовать стандартный путь к браузеру
-                    "playwright_launch_kwargs": {  # Добавляем аргументы для обхода детекции ботов
-                        "args": [
-                            "--no-sandbox",
-                            "--disable-blink-features=AutomationControlled"
-                        ]
-                    }
                 }
 
             # 3. Вызов create_sessions с правильными kwargs в цикле с 3 попытками
