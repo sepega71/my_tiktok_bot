@@ -407,22 +407,17 @@ async def main():
                 with open(session_file, "r", encoding="utf-8") as f:
                     storage_state = json.load(f)
                 
-                # Аргументы для запуска браузера в headless режиме на Render.com
-                launch_args = [
-                    "--no-sandbox",
-                    "--disable-blink-features=AutomationControlled",
-                    "--disable-dev-shm-usage",
-                    "--disable-gpu",
-                    "--disable-extensions",
-                    "--disable-logging",
-                    "--disable-web-security",
-                    "--disable-features=VizDisplayCompositor"
-                ]
-                
                 create_sessions_kwargs = {
                     "headless": True,
                     "num_sessions": 1,
-                    "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None
+                    "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
+                    "timeout": 60000,  # Увеличиваем таймаут до 60 секунд
+                    "playwright_launch_kwargs": {  # Добавляем аргументы для обхода детекции ботов
+                        "args": [
+                            "--no-sandbox",
+                            "--disable-blink-features=AutomationControlled"
+                        ]
+                    }
                 }
             else:
                 # В production всегда используем headless режим, даже при отсутствии сессии
@@ -432,80 +427,32 @@ async def main():
                 
                 logger.info(f"Файл сессии не найден. Запуск в {'headless' if headless_mode else 'headed'} режиме для входа.")
                 
-                # Добавляем дополнительные аргументы для стабильной работы в headless-режиме на Render.com
-                launch_args = [
-                    "--no-sandbox",
-                    "--disable-blink-features=AutomationControlled",
-                    "--disable-dev-shm-usage",
-                    "--disable-gpu",
-                    "--disable-extensions",
-                    "--disable-logging",
-                    "--disable-web-security",
-                    "--disable-features=VizDisplayCompositor",
-                    "--disable-setuid-sandbox",
-                    "--disable-dev-shm-usage",
-                    "--disable-accelerated-2d-canvas",
-                    "--no-first-run",
-                    "--no-zygote",
-                    "--disable-gpu-sandbox",
-                    "--disable-ipc-flooding-protection",
-                    "--disable-background-timer-throttling",
-                    "--disable-backgrounding-occluded-windows",
-                    "--disable-renderer-backgrounding"
-                ]
-                
-                # Дополнительные параметры контекста для обхода защиты TikTok
-                context_args = {
-                    "viewport": {"width": 1920, "height": 1080},
-                    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0 Safari/537.36",
-                    "extra_http_headers": {
-                        "Accept-Language": "en-US,en;q=0.9",
-                        "Cache-Control": "no-cache",
-                        "Pragma": "no-cache"
-                    },
-                    "device_scale_factor": 1,
-                    "is_mobile": False,
-                    "has_touch": False,
-                    "color_scheme": "light",
-                    "timezone_id": "Europe/Moscow",
-                    "geolocation": {"latitude": 55.7558, "longitude": 37.6173},
-                    "locale": "en-US",
-                    "permissions": ["notifications"]
-                }
-                
-                # Добавляем дополнительные параметры для стабильной работы в headless-режиме
-                context_args = {
-                    "viewport": {"width": 1920, "height": 1080},
-                    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                    "extra_http_headers": {
-                        "Accept-Language": "en-US,en;q=0.9",
-                        "Cache-Control": "no-cache",
-                        "Pragma": "no-cache"
-                    }
-                }
-                
-                # В headed-режиме (локально) можем добавить дополнительные опции для лучшего взаимодействия
-                if not headless_mode:
-                    context_args["bypass_csp"] = True
-                    # Убираем --disable-gpu для headed режима
-                    launch_args = [arg for arg in launch_args if arg != "--disable-gpu"]
-                
                 create_sessions_kwargs = {
                     "headless": True,  # Всегда используем headless режим для Render
                     "timeout": 60000,  # Увеличиваем таймаут до 60 секунд
                     "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
-                    "executable_path": None  # Позволяем использовать стандартный путь к браузеру
+                    "executable_path": None,  # Позволяем использовать стандартный путь к браузеру
+                    "playwright_launch_kwargs": {  # Добавляем аргументы для обхода детекции ботов
+                        "args": [
+                            "--no-sandbox",
+                            "--disable-blink-features=AutomationControlled"
+                        ]
+                    }
                 }
-                
-                # Добавляем launch_args и context_args в create_sessions_kwargs если они определены
-                # УДАЛЕНО: launch_args и context_args не поддерживаются в текущей версии TikTokApi
-                # if 'launch_args' in locals():
-                #     create_sessions_kwargs["launch_args"] = launch_args
-                # if 'context_args' in locals():
-                #     create_sessions_kwargs["context_args"] = context_args
 
-            # 3. Вызов create_sessions с правильными kwargs
-            await api.create_sessions(**create_sessions_kwargs)
+            # 3. Вызов create_sessions с правильными kwargs в цикле с 3 попытками
+            max_attempts = 3
+            for attempt in range(max_attempts):
+                try:
+                    await api.create_sessions(**create_sessions_kwargs)
+                    break  # Выходим из цикла, если сессия создана успешно
+                except Exception as e:
+                    logger.error(f"Ошибка при создании сессии (попытка {attempt + 1}): {e}")
+                    if attempt < max_attempts - 1:  # Если это не последняя попытка
+                        logger.info("Повторная попытка через 5 секунд...")
+                        await asyncio.sleep(5)
+                    else:  # Если это была последняя попытка, выбрасываем исключение
+                        raise e
             
             # 4. Загрузка сохраненного состояния в сессию, если оно существует
             if storage_state:
