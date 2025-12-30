@@ -7,3 +7,4 @@ pydantic==2.10.3
 apscheduler
 pyktok
 TikTokApi==7.2.1
+playwright==1.40.0

@@ -392,6 +392,10 @@ async def main():
     logger.info("🤖 Запуск бота...")
     session_file = "tiktok_session.json"
     
+    # Определяем режим работы в зависимости от окружения
+    # Для Render.com и других серверов всегда используем headless режим
+    is_production = os.getenv("RENDER", "false").lower() == "true" or os.getenv("PRODUCTION", "false").lower() == "true"
+    
     # 1. Используй 'async with' с конструктором БЕЗ аргументов
     async with TikTokApi() as api:
         try:
@@ -402,22 +406,118 @@ async def main():
                 logger.info("Найден файл сессии, загрузка storage_state...")
                 with open(session_file, "r", encoding="utf-8") as f:
                     storage_state = json.load(f)
+                
+                # Аргументы для запуска браузера в headless режиме на Render.com
+                launch_args = [
+                    "--no-sandbox",
+                    "--disable-blink-features=AutomationControlled",
+                    "--disable-dev-shm-usage",
+                    "--disable-gpu",
+                    "--disable-extensions",
+                    "--disable-logging",
+                    "--disable-web-security",
+                    "--disable-features=VizDisplayCompositor"
+                ]
+                
                 create_sessions_kwargs = {
                     "headless": True,
                     "num_sessions": 1,
-                    "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None
+                    "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
+                    "suppress_logging": True,
+                    "context_arguments": {
+                        "viewport": {"width": 1920, "height": 1080},
+                        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                        "extra_http_headers": {
+                            "Accept-Language": "en-US,en;q=0.9",
+                            "Cache-Control": "no-cache",
+                            "Pragma": "no-cache"
+                        }
+                    },
+                    "launch_arguments": launch_args
                 }
             else:
-                logger.info("Файл сессии не найден. Запуск видимом режиме для входа.")
+                # В production всегда используем headless режим, даже при отсутствии сессии
+                # Для локальной разработки пользователь может установить переменную окружения FORCE_HEADED=true
+                force_headed = os.getenv("FORCE_HEADED", "false").lower() == "true"
+                headless_mode = False if force_headed and not is_production else True
+                
+                logger.info(f"Файл сессии не найден. Запуск в {'headless' if headless_mode else 'headed'} режиме для входа.")
+                
+                # Добавляем дополнительные аргументы для стабильной работы в headless-режиме на Render.com
+                launch_args = [
+                    "--no-sandbox",
+                    "--disable-blink-features=AutomationControlled",
+                    "--disable-dev-shm-usage",
+                    "--disable-gpu",
+                    "--disable-extensions",
+                    "--disable-logging",
+                    "--disable-web-security",
+                    "--disable-features=VizDisplayCompositor"
+                ]
+                
+                # Добавляем дополнительные параметры для стабильной работы в headless-режиме
+                context_args = {
+                    "viewport": {"width": 1920, "height": 1080},
+                    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "extra_http_headers": {
+                        "Accept-Language": "en-US,en;q=0.9",
+                        "Cache-Control": "no-cache",
+                        "Pragma": "no-cache"
+                    }
+                }
+                
+                # В headed-режиме (локально) можем добавить дополнительные опции для лучшего взаимодействия
+                if not headless_mode:
+                    context_args["bypass_csp"] = True
+                    # Убираем --disable-gpu для headed режима
+                    launch_args = [arg for arg in launch_args if arg != "--disable-gpu"]
+                
                 create_sessions_kwargs = {
-                    "headless": False,
+                    "headless": headless_mode,
                     "timeout": 6000,
                     "num_sessions": 1,
-                    "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None
+                    "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
+                    "suppress_logging": True,
+                    "context_arguments": context_args,
+                    "launch_arguments": launch_args
                 }
 
             # 3. Вызов create_sessions с правильными kwargs
-            await api.create_sessions(**create_sessions_kwargs)
+            try:
+                await api.create_sessions(**create_sessions_kwargs)
+            except Exception as e:
+                # Если возникла ошибка запуска браузера, проверим, связано ли это с headed-режимом
+                if "Target page, context or browser has been closed" in str(e) or "XServer" in str(e):
+                    logger.error(f"Ошибка запуска браузера: {e}")
+                    logger.info("Попытка перезапуска в headless-режиме...")
+                    
+                    # Обновляем параметры для принудительного запуска в headless-режиме
+                    create_sessions_kwargs["headless"] = True
+                    if "launch_arguments" in create_sessions_kwargs:
+                        # Добавляем аргументы, необходимые для работы в headless-режиме
+                        if "--no-sandbox" not in create_sessions_kwargs["launch_arguments"]:
+                            create_sessions_kwargs["launch_arguments"].append("--no-sandbox")
+                        if "--disable-gpu" not in create_sessions_kwargs["launch_arguments"]:
+                            create_sessions_kwargs["launch_arguments"].append("--disable-gpu")
+                    else:
+                        create_sessions_kwargs["launch_arguments"] = [
+                            "--no-sandbox",
+                            "--disable-blink-features=AutomationControlled",
+                            "--disable-dev-shm-usage",
+                            "--disable-gpu",
+                            "--disable-extensions",
+                            "--disable-logging",
+                            "--disable-web-security",
+                            "--disable-features=VizDisplayCompositor"
+                        ]
+                    
+                    # Повторная попытка создания сессии
+                    await api.create_sessions(**create_sessions_kwargs)
+                    
+                    logger.info("Браузер успешно запущен в headless-режиме")
+                else:
+                    # Если ошибка не связана с headed-режимом, пробрасываем её дальше
+                    raise e
             
             # 4. Загрузка сохраненного состояния в сессию, если оно существует
             if storage_state:

@@ -25,7 +25,7 @@
 2. **Service Name**: Укажите имя сервиса (например, `tiktok-bot-service`).
 3.  **Environment**: Выберите `Python`.
 4.  **Runtime**: Выберите `python-3.1:bullseye` или более новую версию, совместимую с зависимостями.
-5.  **Build Command**: Укажите `pip install -r requirements.txt`.
+5.  **Build Command**: Укажите `pip install -r requirements.txt && playwright install chromium`.
 6.  **Start Command**: Укажите `python bot.py`.
 7.  **Branch**: Укажите ветку, из которой будет производиться деплой (например, `main`).
 8.  **Region**: Выберите регион, ближайший к вашей аудитории (например, `Frankfurt` или `Oregon`).
@@ -38,6 +38,7 @@
     *   `ADMIN_ID`: ID вашего пользователя Telegram (для административных функций).
     *   `POSTING_INTERVAL_MINUTES`: Интервал публикации видео в минутах (опционально, по умолчанию 60).
     *   `ms_token`: (Опционально) Ваш `ms_token` для TikTok API, если требуется.
+    *   `PLAYWRIGHT_BROWSERS_PATH`: Установите значение `/opt/render/project/src/.render/browsers` для указания постоянного места хранения браузеров Playwright.
 
 2.  Нажмите "Add Environment Variable" для каждой переменной.
 
