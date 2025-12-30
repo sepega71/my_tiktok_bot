@@ -423,15 +423,6 @@ async def main():
                     "headless": True,
                     "num_sessions": 1,
                     "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
-                    "context_arguments": {
-                        "viewport": {"width": 1920, "height": 1080},
-                        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                        "extra_http_headers": {
-                            "Accept-Language": "en-US,en;q=0.9",
-                            "Cache-Control": "no-cache",
-                            "Pragma": "no-cache"
-                        }
-                    },
                     "launch_arguments": launch_args
                 }
             else:
@@ -476,7 +467,6 @@ async def main():
                     "timeout": 6000,
                     "num_sessions": 1,
                     "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
-                    "context_arguments": context_args,
                     "launch_arguments": launch_args
                 }
 
