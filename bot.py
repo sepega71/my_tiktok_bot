@@ -402,8 +402,14 @@ async def main():
             # 2. Логика загрузки и определения параметров для create_sessions
             create_sessions_kwargs = {}
             storage_state = None
+            
+            # Проверяем существование файла сессии
             if os.path.exists(session_file):
+                # Файл сессии существует - загружаем сохраненное состояние
                 logger.info("Найден файл сессии, загрузка storage_state...")
+                logger.info("В локальной разработке файл сессии позволяет сохранить авторизацию между запусками")
+                logger.info("В Render.com файл сессии может отсутствовать из-за временной файловой системы")
+                
                 with open(session_file, "r", encoding="utf-8") as f:
                     storage_state = json.load(f)
                 
@@ -412,20 +418,32 @@ async def main():
                     "num_sessions": 1,
                     "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
                     "timeout": 60000,  # Увеличиваем таймаут до 60 секунд
+                    "playwright_launch_kwargs": {
+                        "args": ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--single-process"]
+                    }
                 }
             else:
+                # Файл сессии не найден - нормальное поведение для облачных сред с временной файловой системой
+                # В Render.com файлы сессии будут отсутствовать при каждом запуске из-за перезапуска контейнеров
+                logger.info("Файл сессии не найден - это нормально для облачных сред с временной файловой системой (например, Render.com)")
+                logger.info("Бот будет использовать новый сеанс браузера в headless режиме")
+                
                 # В production всегда используем headless режим, даже при отсутствии сессии
                 # Для локальной разработки пользователь может установить переменную окружения FORCE_HEADED=true
                 force_headed = os.getenv("FORCE_HEADED", "false").lower() == "true"
                 headless_mode = False if force_headed and not is_production else True
                 
-                logger.info(f"Файл сессии не найден. Запуск в {'headless' if headless_mode else 'headed'} режиме для входа.")
+                logger.info(f"Запуск в {'headless' if headless_mode else 'headed'} режиме для входа.")
+                logger.info("В headless режиме браузер работает без графического интерфейса - это оптимально для серверных сред")
                 
                 create_sessions_kwargs = {
-                    "headless": True,  # Всегда используем headless режим для Render
+                    "headless": True,  # Всегда используем headless режим для Render и других облачных платформ
                     "timeout": 60000,  # Увеличиваем таймаут до 60 секунд
                     "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
                     "executable_path": None,  # Позволяем использовать стандартный путь к браузеру
+                    "playwright_launch_kwargs": {
+                        "args": ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--single-process"]
+                    }
                 }
 
             # 3. Вызов create_sessions с правильными kwargs в цикле с 3 попытками
