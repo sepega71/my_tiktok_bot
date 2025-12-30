@@ -1,0 +1,9 @@
+aiogram==3.16.0
+APScheduler==3.10.4
+yt-dlp
+python-dotenv==1.0.0
+requests==2.32.3
+pydantic==2.10.3
+apscheduler
+pyktok
+TikTokApi==7.2.1
