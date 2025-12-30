@@ -495,7 +495,6 @@ async def main():
                     "timeout": 30000,  # Увеличиваем таймаут до 30 секунд
                     "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
                     "executable_path": None,  # Позволяем использовать стандартный путь к браузеру
-                    "device_id": None,  # Указываем, что device_id будет генерироваться автоматически
                     "suppress_prints": False  # Позволяем вывод информации для отладки
                 }
                 
