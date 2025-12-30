@@ -441,8 +441,37 @@ async def main():
                     "--disable-extensions",
                     "--disable-logging",
                     "--disable-web-security",
-                    "--disable-features=VizDisplayCompositor"
+                    "--disable-features=VizDisplayCompositor",
+                    "--disable-setuid-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--disable-accelerated-2d-canvas",
+                    "--no-first-run",
+                    "--no-zygote",
+                    "--disable-gpu-sandbox",
+                    "--disable-ipc-flooding-protection",
+                    "--disable-background-timer-throttling",
+                    "--disable-backgrounding-occluded-windows",
+                    "--disable-renderer-backgrounding"
                 ]
+                
+                # Дополнительные параметры контекста для обхода защиты TikTok
+                context_args = {
+                    "viewport": {"width": 1920, "height": 1080},
+                    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0 Safari/537.36",
+                    "extra_http_headers": {
+                        "Accept-Language": "en-US,en;q=0.9",
+                        "Cache-Control": "no-cache",
+                        "Pragma": "no-cache"
+                    },
+                    "device_scale_factor": 1,
+                    "is_mobile": False,
+                    "has_touch": False,
+                    "color_scheme": "light",
+                    "timezone_id": "Europe/Moscow",
+                    "geolocation": {"latitude": 55.7558, "longitude": 37.6173},
+                    "locale": "en-US",
+                    "permissions": ["notifications"]
+                }
                 
                 # Добавляем дополнительные параметры для стабильной работы в headless-режиме
                 context_args = {
@@ -463,10 +492,19 @@ async def main():
                 
                 create_sessions_kwargs = {
                     "headless": headless_mode,
-                    "timeout": 6000,
-                    "num_sessions": 1,
-                    "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None
+                    "timeout": 30000,  # Увеличиваем таймаут до 30 секунд
+                    "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
+                    "proxy": None,  # Добавляем возможность использования прокси
+                    "executable_path": None,  # Позволяем использовать стандартный путь к браузеру
+                    "device_id": None,  # Указываем, что device_id будет генерироваться автоматически
+                    "suppress_prints": False  # Позволяем вывод информации для отладки
                 }
+                
+                # Добавляем launch_args и context_args в create_sessions_kwargs если они определены
+                if 'launch_args' in locals():
+                    create_sessions_kwargs["launch_args"] = launch_args
+                if 'context_args' in locals():
+                    create_sessions_kwargs["context_args"] = context_args
 
             # 3. Вызов create_sessions с правильными kwargs
             try:
