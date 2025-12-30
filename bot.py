@@ -494,8 +494,7 @@ async def main():
                     "headless": headless_mode,
                     "timeout": 30000,  # Увеличиваем таймаут до 30 секунд
                     "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
-                    "executable_path": None,  # Позволяем использовать стандартный путь к браузеру
-                    "suppress_prints": False  # Позволяем вывод информации для отладки
+                    "executable_path": None  # Позволяем использовать стандартный путь к браузеру
                 }
                 
                 # Добавляем launch_args и context_args в create_sessions_kwargs если они определены
