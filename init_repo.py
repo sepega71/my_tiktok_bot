@@ -13,6 +13,11 @@ def init_git_repo():
             subprocess.run(['git', 'init'], check=True)
             print("Репозиторий инициализирован.")
 
+        # Устанавливаем имя пользователя и email для Git
+        subprocess.run(['git', 'config', 'user.name', 'Render Deploy'], check=True)
+        subprocess.run(['git', 'config', 'user.email', 'deploy@render.com'], check=True)
+        print("Настройки Git пользователя установлены.")
+
         # Добавляем все файлы
         subprocess.run(['git', 'add', '.'], check=True)
         print("Файлы добавлены.")
