@@ -422,14 +422,7 @@ async def main():
                 create_sessions_kwargs = {
                     "headless": True,
                     "num_sessions": 1,
-                    "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
-                    "launch_options": {
-                        "args": [
-                            "--no-sandbox",
-                            "--disable-setuid-sandbox",
-                            "--disable-dev-shm-usage"
-                        ]
-                    }
+                    "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None
                 }
             else:
                 # В production всегда используем headless режим, даже при отсутствии сессии
@@ -501,14 +494,7 @@ async def main():
                     "headless": True,  # Всегда используем headless режим для Render
                     "timeout": 60000,  # Увеличиваем таймаут до 60 секунд
                     "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
-                    "executable_path": None,  # Позволяем использовать стандартный путь к браузеру
-                    "launch_options": {
-                        "args": [
-                            "--no-sandbox",
-                            "--disable-setuid-sandbox",
-                            "--disable-dev-shm-usage"
-                        ]
-                    }
+                    "executable_path": None  # Позволяем использовать стандартный путь к браузеру
                 }
                 
                 # Добавляем launch_args и context_args в create_sessions_kwargs если они определены
