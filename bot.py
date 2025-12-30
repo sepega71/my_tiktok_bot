@@ -417,10 +417,7 @@ async def main():
                     "headless": True,
                     "num_sessions": 1,
                     "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
-                    "timeout": 60000,  # Увеличиваем таймаут до 60 секунд
-                    "playwright_launch_kwargs": {
-                        "args": ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--single-process"]
-                    }
+                    "timeout": 60000  # Увеличиваем таймаут до 60 секунд
                 }
             else:
                 # Файл сессии не найден - нормальное поведение для облачных сред с временной файловой системой
@@ -440,10 +437,7 @@ async def main():
                     "headless": True,  # Всегда используем headless режим для Render и других облачных платформ
                     "timeout": 60000,  # Увеличиваем таймаут до 60 секунд
                     "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
-                    "executable_path": None,  # Позволяем использовать стандартный путь к браузеру
-                    "playwright_launch_kwargs": {
-                        "args": ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--single-process"]
-                    }
+                    "executable_path": None  # Позволяем использовать стандартный путь к браузеру
                 }
 
             # 3. Вызов create_sessions с правильными kwargs в цикле с 3 попытками
