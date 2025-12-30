@@ -491,17 +491,18 @@ async def main():
                     launch_args = [arg for arg in launch_args if arg != "--disable-gpu"]
                 
                 create_sessions_kwargs = {
-                    "headless": headless_mode,
-                    "timeout": 30000,  # Увеличиваем таймаут до 30 секунд
+                    "headless": False,  # Включаем headed режим для диагностики
+                    "timeout": 60000,  # Увеличиваем таймаут до 60 секунд
                     "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
                     "executable_path": None  # Позволяем использовать стандартный путь к браузеру
                 }
                 
                 # Добавляем launch_args и context_args в create_sessions_kwargs если они определены
-                if 'launch_args' in locals():
-                    create_sessions_kwargs["launch_args"] = launch_args
-                if 'context_args' in locals():
-                    create_sessions_kwargs["context_args"] = context_args
+                # УДАЛЕНО: launch_args и context_args не поддерживаются в текущей версии TikTokApi
+                # if 'launch_args' in locals():
+                #     create_sessions_kwargs["launch_args"] = launch_args
+                # if 'context_args' in locals():
+                #     create_sessions_kwargs["context_args"] = context_args
 
             # 3. Вызов create_sessions с правильными kwargs
             try:
