@@ -449,15 +449,17 @@ async def main():
                     "timeout": 120000,  # Увеличиваем таймаут до 120 секунд
                     "headless": True,  # Передаем только headless, остальные параметры в конструкторе
                     "override_browser_args": [
-                        "--disable-blink-features=AutomationControlled",
                         "--no-sandbox",
-                        "--disable-setuid-sandbox",
                         "--disable-dev-shm-usage",
-                        "--disable-accelerated-2d-canvas",
-                        "--no-first-run",
-                        "--no-zygote",
-                        "--single-process",
                         "--disable-gpu",
+                        "--no-zygote",
+                        "--disable-features=site-per-process",
+                        "--disable-background-timer-throttling",
+                        "--disable-renderer-backgrounding",
+                        "--disable-backgrounding-occluded-windows",
+                        "--disable-ipc-flooding-protection",
+                        "--disable-background-networking",
+                        "--max_old_space_size=2048"
                     ]
                 }
 
@@ -481,15 +483,17 @@ async def main():
                     "executable_path": None,  # Позволяем использовать стандартный путь к браузеру
                     "headless": True,  # Передаем только headless, остальные параметры в конструкторе
                     "override_browser_args": [
-                        "--disable-blink-features=AutomationControlled",
                         "--no-sandbox",
-                        "--disable-setuid-sandbox",
                         "--disable-dev-shm-usage",
-                        "--disable-accelerated-2d-canvas",
-                        "--no-first-run",
-                        "--no-zygote",
-                        "--single-process",
                         "--disable-gpu",
+                        "--no-zygote",
+                        "--disable-features=site-per-process",
+                        "--disable-background-timer-throttling",
+                        "--disable-renderer-backgrounding",
+                        "--disable-backgrounding-occluded-windows",
+                        "--disable-ipc-flooding-protection",
+                        "--disable-background-networking",
+                        "--max_old_space_size=2048"
                     ]
                 }
 
