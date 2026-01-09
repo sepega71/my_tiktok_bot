@@ -7,6 +7,7 @@ import sqlite3
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
+from threading import Thread
 
 import random
 import yt_dlp
@@ -19,6 +20,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import FSInputFile
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from dotenv import load_dotenv
+from flask import Flask
 
 # Загрузка переменных окружения
 load_dotenv()
@@ -39,6 +41,13 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()  # Добавляем диспетчер
 scheduler = AsyncIOScheduler()
 api_instance = None  # Глобальная переменная для хранения экземпляра TikTokApi
+
+# Создание экземпляра Flask приложения
+app = Flask(__name__)
+
+@app.route('/health')
+def health_check():
+    return "OK", 200
 
 async def block_unnecessary_resources(context):
     """Блокирует загрузку ресурсоемких и ненужных для бота типов контента."""
@@ -575,8 +584,18 @@ async def main():
             logger.info("Бот остановлен.")
 
 
+def run_bot():
+    # Здесь должна быть логика с asyncio.run(main())
+    # Убедись, что цикл asyncio правильно обрабатывается в потоке
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(main())
+
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        logger.info("Получено прерывание с клавиатуры (Ctrl+C).")
+    # Запуск фонового потока с ботом
+    bot_thread = Thread(target=run_bot, daemon=True)
+    bot_thread.start()
+
+    # Запуск веб-сервера
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
