@@ -416,7 +416,14 @@ async def main():
     # Определяем режим работы в зависимости от окружения
     # Для Render.com и других серверов всегда используем headless режим
     is_production = os.getenv("RENDER", "false").lower() == "true" or os.getenv("PRODUCTION", "false").lower() == "true"
-    # 1. Используй 'async with' с конструктором, передавая аргументы браузера
+    # Define a realistic User-Agent
+    user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
+
+    # Define proxy (replace with your actual proxy if you have one)
+    # Recommended for production environments like Render
+    proxy = os.environ.get("PROXY_URL")  # e.g., "http://user:pass@host:port"
+
+    # 1. Используй 'async with' с конструктором без аргументов браузера
     async with TikTokApi() as api:
         # Сохраняем глобальную ссылку на экземпляр api
         global api_instance
@@ -439,8 +446,19 @@ async def main():
                 create_sessions_kwargs = {
                     "num_sessions": 1,
                     "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
-                    "timeout": 60000,  # Увеличиваем таймаут до 60 секунд
-                    "headless": True  # Передаем только headless, остальные параметры в конструкторе
+                    "timeout": 120000,  # Увеличиваем таймаут до 120 секунд
+                    "headless": True,  # Передаем только headless, остальные параметры в конструкторе
+                    "override_browser_args": [
+                        "--disable-blink-features=AutomationControlled",
+                        "--no-sandbox",
+                        "--disable-setuid-sandbox",
+                        "--disable-dev-shm-usage",
+                        "--disable-accelerated-2d-canvas",
+                        "--no-first-run",
+                        "--no-zygote",
+                        "--single-process",
+                        "--disable-gpu",
+                    ]
                 }
 
             else:
@@ -458,10 +476,21 @@ async def main():
                 logger.info("В headless режиме браузер работает без графического интерфейса - это оптимально для серверных сред")
                 
                 create_sessions_kwargs = {
-                    "timeout": 60000,  # Увеличиваем таймаут до 60 секунд
+                    "timeout": 120000,  # Увеличиваем таймаут до 120 секунд
                     "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
                     "executable_path": None,  # Позволяем использовать стандартный путь к браузеру
-                    "headless": True  # Передаем только headless, остальные параметры в конструкторе
+                    "headless": True,  # Передаем только headless, остальные параметры в конструкторе
+                    "override_browser_args": [
+                        "--disable-blink-features=AutomationControlled",
+                        "--no-sandbox",
+                        "--disable-setuid-sandbox",
+                        "--disable-dev-shm-usage",
+                        "--disable-accelerated-2d-canvas",
+                        "--no-first-run",
+                        "--no-zygote",
+                        "--single-process",
+                        "--disable-gpu",
+                    ]
                 }
 
             # 3. Вызов create_sessions с правильными kwargs в цикле с 3 попытками
