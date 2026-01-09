@@ -23,6 +23,7 @@ from dotenv import load_dotenv
 # Загрузка переменных окружения
 load_dotenv()
 
+
 # Конфигурация
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
@@ -38,6 +39,13 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()  # Добавляем диспетчер
 scheduler = AsyncIOScheduler()
 api_instance = None  # Глобальная переменная для хранения экземпляра TikTokApi
+
+async def block_unnecessary_resources(context):
+    """Блокирует загрузку ресурсоемких и ненужных для бота типов контента."""
+    await context.route(
+        "**/*.{png,jpg,jpeg,svg,css,woff,woff2,ttf,ico,gif,mp4,webm}",
+        lambda route: route.abort()
+    )
 
 
 # Database operations class
@@ -118,7 +126,7 @@ async def download_video(url: str, output_path: str = "downloads") -> str:
         return None
 
 
-async def get_random_tiktok_url(api):
+async def get_random_tiktok_url():
     """Получает URL случайного видео из трендов TikTok, используя правильный API."""
     try:
         logger.info("Получение списка трендовых видео из TikTok...")
@@ -126,10 +134,11 @@ async def get_random_tiktok_url(api):
         # Получаем все опубликованные URL
         posted_urls = DatabaseManager.get_all_posted_urls()
         logger.info(f"Найдено {len(posted_urls)} опубликованных видео в базе данных")
-        
+        # Используем глобальный экземпляр api, созданный в main()
+        global api_instance
         
         # Получаем список трендовых видео (уменьшаем количество до 20 для избежания блокировки API)
-        trending_videos = [video async for video in api.trending.videos(count=20)]
+        trending_videos = [video async for video in api_instance.trending.videos(count=20)]
 
         if not trending_videos:
             logger.error("Не удалось получить список трендовых видео, список пуст.")
@@ -156,12 +165,13 @@ async def get_random_tiktok_url(api):
         return None
 
 
-async def post_random_video(api):
+async def post_random_video():
     """Публикует случайное видео из TikTok"""
+    import gc
     try:
         logger.info("Начало выполнения задачи post_random_video")
         # Получаем URL случайного видео
-        video_url = await get_random_tiktok_url(api)
+        video_url = await get_random_tiktok_url()
         if not video_url:
             logger.warning("Не удалось получить URL случайного видео")
             return
@@ -208,6 +218,8 @@ async def post_random_video(api):
     except Exception as e:
         logger.error(f"Ошибка в функции post_random_video: {e}")
     finally:
+        # Освобождаем память
+        gc.collect()
         logger.info("Завершение выполнения задачи post_random_video")
 
 
@@ -395,9 +407,12 @@ async def main():
     # Определяем режим работы в зависимости от окружения
     # Для Render.com и других серверов всегда используем headless режим
     is_production = os.getenv("RENDER", "false").lower() == "true" or os.getenv("PRODUCTION", "false").lower() == "true"
-    
-    # 1. Используй 'async with' с конструктором БЕЗ аргументов
+    # 1. Используй 'async with' с конструктором, передавая аргументы браузера
     async with TikTokApi() as api:
+        # Сохраняем глобальную ссылку на экземпляр api
+        global api_instance
+        api_instance = api
+
         try:
             # 2. Логика загрузки и определения параметров для create_sessions
             create_sessions_kwargs = {}
@@ -412,13 +427,13 @@ async def main():
                 
                 with open(session_file, "r", encoding="utf-8") as f:
                     storage_state = json.load(f)
-                
                 create_sessions_kwargs = {
-                    "headless": True,
                     "num_sessions": 1,
                     "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
-                    "timeout": 60000  # Увеличиваем таймаут до 60 секунд
+                    "timeout": 60000,  # Увеличиваем таймаут до 60 секунд
+                    "headless": True  # Передаем только headless, остальные параметры в конструкторе
                 }
+
             else:
                 # Файл сессии не найден - нормальное поведение для облачных сред с временной файловой системой
                 # В Render.com файлы сессии будут отсутствовать при каждом запуске из-за перезапуска контейнеров
@@ -434,10 +449,10 @@ async def main():
                 logger.info("В headless режиме браузер работает без графического интерфейса - это оптимально для серверных сред")
                 
                 create_sessions_kwargs = {
-                    "headless": True,  # Всегда используем headless режим для Render и других облачных платформ
                     "timeout": 60000,  # Увеличиваем таймаут до 60 секунд
                     "ms_tokens": [os.environ.get("ms_token")] if os.environ.get("ms_token") else None,
-                    "executable_path": None  # Позволяем использовать стандартный путь к браузеру
+                    "executable_path": None,  # Позволяем использовать стандартный путь к браузеру
+                    "headless": True  # Передаем только headless, остальные параметры в конструкторе
                 }
 
             # 3. Вызов create_sessions с правильными kwargs в цикле с 3 попытками
@@ -499,12 +514,11 @@ async def main():
             global scheduler
             scheduler = AsyncIOScheduler()
             
-            # Добавляем задачу с правильной передачей аргументов
+            # Добавляем задачу без передачи api как аргумент
             scheduler.add_job(
                 post_random_video,
                 'interval',
                 minutes=POSTING_INTERVAL_MINUTES,
-                args=[api],
                 id='post_random_video_job',
                 max_instances=1,  # Ограничиваем количество одновременных выполнений
                 misfire_grace_time=30 # Время для выполнения просроченных задач
